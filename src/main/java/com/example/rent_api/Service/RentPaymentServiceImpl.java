@@ -25,17 +25,22 @@ public class RentPaymentServiceImpl implements RentPaymentService {
     }
 
     @Override
-    public RentPayment makePayment(Long tenantId, RentPayment payment) {
+    public RentPayment makePayment(
+            Long tenantId,
+            RentPayment payment) {
 
         // Find tenant
         Tenant tenant = tenantRepository.findById(tenantId)
-                .orElseThrow(() -> new RuntimeException("Tenant not found"));
+                .orElseThrow(() ->
+                        new RuntimeException("Tenant not found"));
 
-        // Check whether rent is already paid for this month
-        if (rentPaymentRepository
-                .findByTenantIdAndMonth(tenantId, payment.getMonth())
-                .isPresent()) {
+        // Check whether this month's rent is already paid
+        List<RentPayment> existingPayments =
+                rentPaymentRepository.findAllByTenantIdAndMonth(
+                        tenantId,
+                        payment.getMonth());
 
+        if (!existingPayments.isEmpty()) {
             throw new RuntimeException(
                     "Rent for this month is already paid");
         }
@@ -43,25 +48,27 @@ public class RentPaymentServiceImpl implements RentPaymentService {
         // Connect payment with tenant
         payment.setTenant(tenant);
 
-        // Set payment date automatically
+        // Automatically set today's date
         payment.setPaymentDate(LocalDate.now());
 
-        // Save payment
         return rentPaymentRepository.save(payment);
     }
 
     @Override
     public List<RentPayment> getAllPayments() {
-
         return rentPaymentRepository.findAll();
     }
 
     @Override
-    public List<RentPayment> getPaymentsByTenant(Long tenantId) {
+    public List<RentPayment> getPaymentsByTenant( Long tenantId) {
 
         return rentPaymentRepository.findAll()
-                .stream()
-                .filter(payment -> payment.getTenant().getId().equals(tenantId))
+           .stream()
+                .filter(payment ->
+                        payment.getTenant() != null
+                        && payment.getTenant()
+                                .getId()
+                                .equals(tenantId))
                 .toList();
     }
 }

@@ -24,7 +24,7 @@ public class DuesController {
         return duesService.getTenantDues(tenantId);
     }
 
-    @GetMapping("/current-month")
+    @GetMapping("/current-month")// tenants who have not paid this month 
     public List<Tenant> getTenantsWithPendingCurrentMonthRent() {
 
         return duesService.getTenantsWithPendingCurrentMonthRent();

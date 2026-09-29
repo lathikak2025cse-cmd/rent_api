@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>RentEasy - Tenants</title>
+
+    <link rel="stylesheet"
+      href="/css/style.css">
+
+</head>
+
+<body>
+
+
+<!-- =========================
+     SIDEBAR
+     ========================= -->
+
+<aside class="sidebar">
+
+    <div class="logo">
+        🏠 RentEasy
+    </div>
+
+    <nav>
+
+        <a href="index.html">
+            📊 Dashboard
+        </a>
+
+        <a href="rooms.html">
+            🏠 Rooms
+        </a>
+
+        <a href="tenants.html" class="active">
+            👤 Tenants
+        </a>
+
+        <a href="assign.html">
+            🔗 Assign Room
+        </a>
+
+        <a href="payments.html">
+            💰 Rent Payments
+        </a>
+
+        <a href="dues.html">
+            ⚠️ Dues
+        </a>
+
+        <a href="vacate.html">
+            🚪 Vacate Tenant
+        </a>
+
+    </nav>
+
+</aside>
+
+
+<!-- =========================
+     MAIN CONTENT
+     ========================= -->
+
+<main class="main-content">
+
+
+    <!-- HEADER -->
+
+    <header class="topbar">
+
+        <h1>Tenant Management</h1>
+
+        <p>
+            Register and manage PG tenants
+        </p>
+
+    </header>
+
+
+    <!-- =========================
+         ADD TENANT
+         ========================= -->
+
+    <section class="form-card">
+
+        <h2>Register New Tenant</h2>
+
+
+        <form id="tenantForm">
+
+
+            <!-- NAME -->
+
+            <div class="form-group">
+
+                <label for="tenantName">
+                    Tenant Name
+                </label>
+
+                <input
+                    type="text"
+                    id="tenantName"
+                    placeholder="Enter tenant name"
+                    required
+                >
+
+            </div>
+
+
+            <!-- PHONE -->
+
+            <div class="form-group">
+
+                <label for="tenantPhone">
+                    Phone Number
+                </label>
+
+                <input
+                    type="tel"
+                    id="tenantPhone"
+                    placeholder="Enter phone number"
+                    maxlength="10"
+                    required
+                >
+
+            </div>
+
+
+            <!-- MOVE IN DATE -->
+
+            <div class="form-group">
+
+                <label for="moveInDate">
+                    Move-in Date
+                </label>
+
+                <input
+                    type="date"
+                    id="moveInDate"
+                    required
+                >
+
+            </div>
+
+
+            <button
+                type="submit"
+                class="primary-button">
+
+                Add Tenant
+
+            </button>
+
+        </form>
+
+
+        <!-- MESSAGE -->
+
+        <div
+            id="tenantMessage"
+            class="message">
+        </div>
+
+    </section>
+
+
+    <!-- =========================
+         TENANT LIST
+         ========================= -->
+
+    <section class="table-card">
+
+
+        <div class="section-header">
+
+            <div>
+
+                <h2>All Tenants</h2>
+
+                <p>
+                    Registered tenants in RentEasy
+                </p>
+
+            </div>
+
+
+            <button
+                onclick="loadTenants()"
+                class="secondary-button">
+
+                🔄 Refresh
+
+            </button>
+
+        </div>
+
+
+        <div class="table-container">
+
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>ID</th>
+
+                        <th>Name</th>
+
+                        <th>Phone</th>
+
+                        <th>Move-in Date</th>
+
+                        <th>Room</th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody id="tenantTableBody">
+
+                    <tr>
+
+                        <td colspan="5">
+                            Loading tenants...
+                        </td>
+
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+
+        </div>
+
+    </section>
+
+
+</main>
+
+
+<script src="js/app.js"></script>
+
+
+<script>
+
+
+/* ===================================
+   LOAD ALL TENANTS
+   =================================== */
+
+async function loadTenants() {
+
+    const tableBody =
+        document.getElementById(
+            "tenantTableBody"
+        );
+
+
+    tableBody.innerHTML = `
+        <tr>
+            <td colspan="5">
+                Loading tenants...
+            </td>
+        </tr>
+    `;
+
+
+    try {
+
+        const response =
+            await fetch("/api/tenants");
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                "Failed to load tenants"
+            );
+
+        }
+
+
+        const tenants =
+            await response.json();
+
+
+        tableBody.innerHTML = "";
+
+
+        /* =========================
+           NO TENANTS
+           ========================= */
+
+        if (tenants.length === 0) {
+
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="5">
+                        No tenants found.
+                    </td>
+                </tr>
+            `;
+
+            return;
+        }
+
+
+        /* =========================
+           DISPLAY TENANTS
+           ========================= */
+
+        tenants.forEach(tenant => {
+
+
+            let roomText =
+                "Not Assigned";
+
+
+            if (tenant.room) {
+
+                roomText =
+                    tenant.room.roomNumber;
+
+            }
+
+
+            const row =
+                document.createElement("tr");
+
+
+            row.innerHTML = `
+
+                <td>
+                    ${tenant.id}
+                </td>
+
+                <td>
+                    <strong>
+                        ${tenant.name}
+                    </strong>
+                </td>
+
+                <td>
+                    ${tenant.phone}
+                </td>
+
+                <td>
+                    ${tenant.moveInDate}
+                </td>
+
+                <td>
+
+                    ${
+                        tenant.room
+
+                        ? `<span class="status available">
+                             🏠 ${roomText}
+                           </span>`
+
+                        : `<span class="status">
+                             Not Assigned
+                           </span>`
+                    }
+
+                </td>
+
+            `;
+
+
+            tableBody.appendChild(row);
+
+        });
+
+
+    } catch (error) {
+
+        console.error(error);
+
+
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="5">
+                    ❌ Unable to load tenants.
+                    Make sure Spring Boot is running.
+                </td>
+            </tr>
+        `;
+
+    }
+
+}
+
+
+/* ===================================
+   ADD TENANT
+   =================================== */
+
+document
+    .getElementById("tenantForm")
+    .addEventListener(
+        "submit",
+        async function(event) {
+
+            event.preventDefault();
+
+
+            const name =
+                document
+                    .getElementById("tenantName")
+                    .value
+                    .trim();
+
+
+            const phone =
+                document
+                    .getElementById("tenantPhone")
+                    .value
+                    .trim();
+
+
+            const moveInDate =
+                document
+                    .getElementById("moveInDate")
+                    .value;
+
+
+            const message =
+                document.getElementById(
+                    "tenantMessage"
+                );
+
+
+            /* =========================
+               BASIC PHONE VALIDATION
+               ========================= */
+
+            if (!/^\d{10}$/.test(phone)) {
+
+                message.className =
+                    "message error";
+
+                message.textContent =
+                    "❌ Please enter a valid 10-digit phone number.";
+
+                return;
+            }
+
+
+            try {
+
+                const response =
+                    await fetch("/api/tenants", {
+
+                        method: "POST",
+
+                        headers: {
+
+                            "Content-Type":
+                                "application/json"
+
+                        },
+
+                        body: JSON.stringify({
+
+                            name: name,
+
+                            phone: phone,
+
+                            moveInDate:
+                                moveInDate
+
+                        })
+
+                    });
+
+
+                if (!response.ok) {
+
+                    throw new Error(
+                        "Failed to add tenant"
+                    );
+
+                }
+
+
+                const tenant =
+                    await response.json();
+
+
+                message.className =
+                    "message success";
+
+
+                message.textContent =
+                    `Tenant ${tenant.name}
+                     registered successfully!`;
+
+
+                /* Clear form */
+
+                document
+                    .getElementById(
+                        "tenantForm"
+                    )
+                    .reset();
+
+
+                /* Reload tenant list */
+
+                loadTenants();
+
+
+            } catch (error) {
+
+                console.error(error);
+
+
+                message.className =
+                    "message error";
+
+
+                message.textContent =
+                    "❌ Failed to register tenant. " +
+                    "Please check the backend.";
+
+            }
+
+        }
+    );
+
+
+/* ===================================
+   LOAD TENANTS WHEN PAGE OPENS
+   =================================== */
+
+loadTenants();
+
+</script>
+
+
+</body>
+
+</html>

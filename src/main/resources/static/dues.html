@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>RentEasy - Dues</title>
+
+    <link rel="stylesheet"
+      href="/css/style.css">
+
+</head>
+
+<body>
+
+
+<!-- =========================
+     SIDEBAR
+     ========================= -->
+
+<aside class="sidebar">
+
+    <div class="logo">
+        🏠 RentEasy
+    </div>
+
+    <nav>
+
+        <a href="index.html">
+            📊 Dashboard
+        </a>
+
+        <a href="rooms.html">
+            🏠 Rooms
+        </a>
+
+        <a href="tenants.html">
+            👤 Tenants
+        </a>
+
+        <a href="assign.html">
+            🔗 Assign Room
+        </a>
+
+        <a href="payments.html">
+            💰 Rent Payments
+        </a>
+
+        <a href="dues.html" class="active">
+            ⚠️ Dues
+        </a>
+
+        <a href="vacate.html">
+            🚪 Vacate Tenant
+        </a>
+
+    </nav>
+
+</aside>
+
+
+<!-- =========================
+     MAIN CONTENT
+     ========================= -->
+
+<main class="main-content">
+
+
+    <!-- HEADER -->
+
+    <header class="topbar">
+
+        <h1>Rent Dues</h1>
+
+        <p>
+            Track pending rent payments
+        </p>
+
+    </header>
+
+
+    <!-- =========================
+         TENANT DUE SEARCH
+         ========================= -->
+
+    <section class="form-card">
+
+        <h2>Check Tenant Dues</h2>
+
+        <form id="dueForm">
+
+            <div class="form-group">
+
+                <label for="tenantSelect">
+                    Select Tenant
+                </label>
+
+                <select
+                    id="tenantSelect"
+                    required>
+
+                    <option value="">
+                        Loading tenants...
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <button
+                type="submit"
+                class="primary-button">
+
+                Check Dues
+
+            </button>
+
+        </form>
+
+
+        <div
+            id="dueMessage"
+            class="message">
+        </div>
+
+
+        <!-- DUE RESULT -->
+
+        <div
+            id="dueResult"
+            class="due-result">
+        </div>
+
+    </section>
+
+
+    <!-- =========================
+         CURRENT MONTH PENDING
+         ========================= -->
+
+    <section class="table-card">
+
+        <div class="section-header">
+
+            <div>
+
+                <h2>Current Month Pending Rent</h2>
+
+                <p>
+                    Tenants who have not paid
+                    the current month's rent
+                </p>
+
+            </div>
+
+
+            <button
+                class="secondary-button"
+                onclick="loadPendingTenants()">
+
+                🔄 Refresh
+
+            </button>
+
+        </div>
+
+
+        <div class="table-container">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>ID</th>
+
+                        <th>Tenant</th>
+
+                        <th>Phone</th>
+
+                        <th>Room</th>
+
+                        <th>Monthly Rent</th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody id="pendingTableBody">
+
+                    <tr>
+
+                        <td colspan="5">
+                            Loading...
+                        </td>
+
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+</main>
+
+
+<script src="js/app.js"></script>
+
+
+<script>
+
+
+/* ===================================
+   LOAD TENANTS
+   =================================== */
+
+async function loadTenants() {
+
+    const tenantSelect =
+        document.getElementById(
+            "tenantSelect"
+        );
+
+
+    try {
+
+        const response =
+            await fetch("/api/tenants");
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                "Failed to load tenants"
+            );
+
+        }
+
+
+        const tenants =
+            await response.json();
+
+
+        tenantSelect.innerHTML = `
+            <option value="">
+                -- Select Tenant --
+            </option>
+        `;
+
+
+        tenants.forEach(tenant => {
+
+            const option =
+                document.createElement(
+                    "option"
+                );
+
+
+            option.value =
+                tenant.id;
+
+
+            option.textContent =
+                `${tenant.name}
+                 (ID: ${tenant.id})`;
+
+
+            tenantSelect.appendChild(
+                option
+            );
+
+        });
+
+
+        if (tenants.length === 0) {
+
+            tenantSelect.innerHTML = `
+                <option value="">
+                    No tenants found
+                </option>
+            `;
+
+        }
+
+
+    } catch (error) {
+
+        console.error(error);
+
+
+        tenantSelect.innerHTML = `
+            <option value="">
+                Failed to load tenants
+            </option>
+        `;
+
+    }
+
+}
+
+
+/* ===================================
+   CHECK INDIVIDUAL TENANT DUES
+   =================================== */
+
+document
+    .getElementById("dueForm")
+    .addEventListener(
+        "submit",
+        async function(event) {
+
+            event.preventDefault();
+
+
+            const tenantId =
+                document
+                    .getElementById(
+                        "tenantSelect"
+                    )
+                    .value;
+
+
+            const message =
+                document.getElementById(
+                    "dueMessage"
+                );
+
+
+            const result =
+                document.getElementById(
+                    "dueResult"
+                );
+
+
+            if (!tenantId) {
+
+                message.className =
+                    "message error";
+
+                message.textContent =
+                    "❌ Please select a tenant.";
+
+                result.innerHTML = "";
+
+                return;
+
+            }
+
+
+            try {
+
+                const response =
+                    await fetch(
+                        `/api/dues/tenant/${tenantId}`
+                    );
+
+
+                const data =
+                    await response.text();
+
+
+                if (!response.ok) {
+
+                    throw new Error(data);
+
+                }
+
+
+                message.className =
+                    "message success";
+
+                message.textContent =
+                    "✅ Due details loaded.";
+
+
+                /*
+                 * Backend returns plain text
+                 * with each value on a new line.
+                 */
+
+                const lines =
+                    data.split("\n");
+
+
+                let tenantName = "";
+                let monthsSinceMoveIn = "";
+                let monthsPaid = "";
+                let pendingMonths = "";
+                let pendingAmount = "";
+
+
+                lines.forEach(line => {
+
+                    if (line.startsWith("Tenant:")) {
+
+                        tenantName =
+                            line
+                                .replace(
+                                    "Tenant:",
+                                    ""
+                                )
+                                .trim();
+
+                    }
+
+
+                    if (line.startsWith(
+                        "Months since move-in:"
+                    )) {
+
+                        monthsSinceMoveIn =
+                            line
+                                .replace(
+                                    "Months since move-in:",
+                                    ""
+                                )
+                                .trim();
+
+                    }
+
+
+                    if (line.startsWith(
+                        "Months paid:"
+                    )) {
+
+                        monthsPaid =
+                            line
+                                .replace(
+                                    "Months paid:",
+                                    ""
+                                )
+                                .trim();
+
+                    }
+
+
+                    if (line.startsWith(
+                        "Pending months:"
+                    )) {
+
+                        pendingMonths =
+                            line
+                                .replace(
+                                    "Pending months:",
+                                    ""
+                                )
+                                .trim();
+
+                    }
+
+
+                    if (line.startsWith(
+                        "Pending amount:"
+                    )) {
+
+                        pendingAmount =
+                            line
+                                .replace(
+                                    "Pending amount:",
+                                    ""
+                                )
+                                .trim();
+
+                    }
+
+                });
+
+
+                result.innerHTML = `
+
+                    <div class="due-card">
+
+                        <h3>
+                            ${tenantName}
+                        </h3>
+
+
+                        <div class="due-details">
+
+                            <div>
+
+                                <span>
+                                    Months Since Move-in
+                                </span>
+
+                                <strong>
+                                    ${monthsSinceMoveIn}
+                                </strong>
+
+                            </div>
+
+
+                            <div>
+
+                                <span>
+                                    Months Paid
+                                </span>
+
+                                <strong>
+                                    ${monthsPaid}
+                                </strong>
+
+                            </div>
+
+
+                            <div>
+
+                                <span>
+                                    Pending Months
+                                </span>
+
+                                <strong class="pending-text">
+                                    ${pendingMonths}
+                                </strong>
+
+                            </div>
+
+
+                            <div>
+
+                                <span>
+                                    Pending Amount
+                                </span>
+
+                                <strong class="pending-text">
+                                    ${pendingAmount}
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                `;
+
+
+            } catch (error) {
+
+                console.error(error);
+
+
+                message.className =
+                    "message error";
+
+
+                message.textContent =
+                    "❌ " + error.message;
+
+
+                result.innerHTML = "";
+
+            }
+
+        }
+    );
+
+
+/* ===================================
+   CURRENT MONTH PENDING TENANTS
+   =================================== */
+
+async function loadPendingTenants() {
+
+    const tableBody =
+        document.getElementById(
+            "pendingTableBody"
+        );
+
+
+    try {
+
+        const response =
+            await fetch(
+                "/api/dues/current-month"
+            );
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                "Failed to load pending tenants"
+            );
+
+        }
+
+
+        const tenants =
+            await response.json();
+
+
+        tableBody.innerHTML = "";
+
+
+        if (tenants.length === 0) {
+
+            tableBody.innerHTML = `
+
+                <tr>
+
+                    <td colspan="5">
+
+                        ✅ All assigned tenants
+                        have paid the current month.
+
+                    </td>
+
+                </tr>
+
+            `;
+
+            return;
+
+        }
+
+
+        tenants.forEach(tenant => {
+
+            const row =
+                document.createElement(
+                    "tr"
+                );
+
+
+            const roomNumber =
+                tenant.room
+                    ? tenant.room.roomNumber
+                    : "Not Assigned";
+
+
+            const monthlyRent =
+                tenant.room
+                    ? tenant.room.monthlyRent
+                    : 0;
+
+
+            row.innerHTML = `
+
+                <td>
+                    ${tenant.id}
+                </td>
+
+                <td>
+                    ${tenant.name}
+                </td>
+
+                <td>
+                    ${tenant.phone}
+                </td>
+
+                <td>
+                    ${roomNumber}
+                </td>
+
+                <td>
+                    ₹${monthlyRent}
+                </td>
+
+            `;
+
+
+            tableBody.appendChild(row);
+
+        });
+
+
+    } catch (error) {
+
+        console.error(error);
+
+
+        tableBody.innerHTML = `
+
+            <tr>
+
+                <td colspan="5">
+
+                    ❌ Failed to load pending tenants.
+
+                </td>
+
+            </tr>
+
+        `;
+
+    }
+
+}
+
+
+/* ===================================
+   INITIALIZE PAGE
+   =================================== */
+
+loadTenants();
+
+loadPendingTenants();
+
+
+</script>
+
+
+</body>
+
+</html>

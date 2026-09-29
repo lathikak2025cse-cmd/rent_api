@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>RentEasy - Rooms</title>
+
+    <link rel="stylesheet"
+          href="/css/style.css">
+
+</head>
+
+
+<body>
+
+
+<!-- =========================
+     SIDEBAR
+     ========================= -->
+
+<aside class="sidebar">
+
+    <div class="logo">
+        🏠 RentEasy
+    </div>
+
+
+    <nav>
+
+        <a href="index.html">
+            📊 Dashboard
+        </a>
+
+        <a href="rooms.html" class="active">
+            🏠 Rooms
+        </a>
+
+        <a href="tenants.html">
+            👤 Tenants
+        </a>
+
+        <a href="assign.html">
+            🔗 Assign Room
+        </a>
+
+        <a href="payments.html">
+            💰 Rent Payments
+        </a>
+
+        <a href="dues.html">
+            ⚠️ Dues
+        </a>
+
+        <a href="vacate.html">
+            🚪 Vacate Tenant
+        </a>
+
+    </nav>
+
+</aside>
+
+
+
+<!-- =========================
+     MAIN CONTENT
+     ========================= -->
+
+<main class="main-content">
+
+
+    <!-- =========================
+         HEADER
+         ========================= -->
+
+    <header class="topbar">
+
+        <h1>
+            Room Management
+        </h1>
+
+        <p>
+            Add rooms and check room availability
+        </p>
+
+    </header>
+
+
+
+    <!-- =========================
+         ADD ROOM
+         ========================= -->
+
+    <section class="form-card">
+
+        <h2>
+            Add New Room
+        </h2>
+
+
+        <form id="roomForm">
+
+
+            <!-- ROOM NUMBER -->
+
+            <div class="form-group">
+
+                <label for="roomNumber">
+                    Room Number
+                </label>
+
+                <input
+                    type="text"
+                    id="roomNumber"
+                    placeholder="Example: A101"
+                    required>
+
+            </div>
+
+
+            <!-- MONTHLY RENT -->
+
+            <div class="form-group">
+
+                <label for="monthlyRent">
+                    Monthly Rent
+                </label>
+
+                <input
+                    type="number"
+                    id="monthlyRent"
+                    placeholder="Example: 8000"
+                    min="1"
+                    required>
+
+            </div>
+
+
+            <!-- BUTTON -->
+
+            <button
+                type="submit"
+                class="primary-button">
+
+                Add Room
+
+            </button>
+
+
+        </form>
+
+
+        <!-- MESSAGE -->
+
+        <div
+            id="roomMessage"
+            class="message">
+        </div>
+
+
+    </section>
+
+
+
+    <!-- =========================
+         ALL ROOMS
+         ========================= -->
+
+    <section class="table-card">
+
+
+        <div class="section-header">
+
+            <div>
+
+                <h2>
+                    All Rooms
+                </h2>
+
+                <p>
+                    Current rooms in RentEasy
+                </p>
+
+            </div>
+
+
+            <button
+                type="button"
+                class="secondary-button"
+                onclick="loadRooms()">
+
+                🔄 Refresh
+
+            </button>
+
+        </div>
+
+
+
+        <!-- TABLE -->
+
+        <div class="table-container">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            ID
+                        </th>
+
+                        <th>
+                            Room Number
+                        </th>
+
+                        <th>
+                            Monthly Rent
+                        </th>
+
+                        <th>
+                            Status
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody id="roomTableBody">
+
+                    <tr>
+
+                        <td colspan="4">
+                            Loading rooms...
+                        </td>
+
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+
+    </section>
+
+
+</main>
+
+
+
+<!-- =========================
+     JAVASCRIPT
+     ========================= -->
+
+<script src="/js/app.js"></script>
+
+
+<script>
+
+
+/* =====================================
+   ADD ROOM
+   ===================================== */
+
+document
+    .getElementById("roomForm")
+    .addEventListener(
+        "submit",
+        async function(event) {
+
+            event.preventDefault();
+
+
+            const roomNumber =
+                document
+                    .getElementById("roomNumber")
+                    .value
+                    .trim();
+
+
+            const monthlyRent =
+                document
+                    .getElementById("monthlyRent")
+                    .value;
+
+
+            const message =
+                document.getElementById(
+                    "roomMessage"
+                );
+
+
+            /* Basic validation */
+
+            if (!roomNumber || !monthlyRent) {
+
+                message.className =
+                    "message error";
+
+                message.textContent =
+                    "❌ Please fill all fields.";
+
+                return;
+
+            }
+
+
+            try {
+
+                const response =
+                    await fetch(
+                        "/api/rooms",
+                        {
+
+                            method: "POST",
+
+                            headers: {
+                                "Content-Type":
+                                    "application/json"
+                            },
+
+                            body: JSON.stringify({
+
+                                roomNumber:
+                                    roomNumber,
+
+                                monthlyRent:
+                                    Number(monthlyRent)
+
+                            })
+
+                        }
+                    );
+
+
+                if (!response.ok) {
+
+                    let errorMessage =
+                        "Failed to add room";
+
+
+                    try {
+
+                        const errorData =
+                            await response.json();
+
+
+                        if (errorData.message) {
+
+                            errorMessage =
+                                errorData.message;
+
+                        }
+
+                    } catch {
+
+                        const text =
+                            await response.text();
+
+                        if (text) {
+
+                            errorMessage =
+                                text;
+
+                        }
+
+                    }
+
+
+                    throw new Error(
+                        errorMessage
+                    );
+
+                }
+
+
+                const room =
+                    await response.json();
+
+
+                message.className =
+                    "message success";
+
+
+                message.textContent =
+                    "✅ Room added successfully.";
+
+
+                /* Clear form */
+
+                document
+                    .getElementById("roomForm")
+                    .reset();
+
+
+                /* Reload table */
+
+                loadRooms();
+
+
+            } catch (error) {
+
+                console.error(error);
+
+
+                message.className =
+                    "message error";
+
+
+                message.textContent =
+                    "❌ " + error.message;
+
+            }
+
+        }
+    );
+
+
+
+/* =====================================
+   LOAD ALL ROOMS
+   ===================================== */
+
+async function loadRooms() {
+
+    const tableBody =
+        document.getElementById(
+            "roomTableBody"
+        );
+
+
+    try {
+
+        const response =
+            await fetch(
+                "/api/rooms"
+            );
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                "Failed to load rooms"
+            );
+
+        }
+
+
+        const rooms =
+            await response.json();
+
+
+        tableBody.innerHTML = "";
+
+
+        /* No rooms */
+
+        if (rooms.length === 0) {
+
+            tableBody.innerHTML = `
+
+                <tr>
+
+                    <td colspan="4">
+
+                        No rooms available.
+
+                    </td>
+
+                </tr>
+
+            `;
+
+            return;
+
+        }
+
+
+        /* Display rooms */
+
+        rooms.forEach(room => {
+
+
+            const row =
+                document.createElement(
+                    "tr"
+                );
+
+
+            const statusClass =
+                room.occupied
+                    ? "occupied"
+                    : "available";
+
+
+            const statusText =
+                room.occupied
+                    ? "Occupied"
+                    : "Available";
+
+
+            row.innerHTML = `
+
+                <td>
+                    ${room.id}
+                </td>
+
+                <td>
+                    <strong>
+                        ${room.roomNumber}
+                    </strong>
+                </td>
+
+                <td>
+                    ₹${room.monthlyRent}
+                </td>
+
+                <td>
+
+                    <span
+                        class="status ${statusClass}">
+
+                        ${room.occupied
+                            ? "🔴"
+                            : "🟢"}
+
+                        ${statusText}
+
+                    </span>
+
+                </td>
+
+            `;
+
+
+            tableBody.appendChild(row);
+
+        });
+
+
+    } catch (error) {
+
+        console.error(error);
+
+
+        tableBody.innerHTML = `
+
+            <tr>
+
+                <td colspan="4">
+
+                    ❌ Failed to load rooms.
+
+                </td>
+
+            </tr>
+
+        `;
+
+    }
+
+}
+
+
+/* =====================================
+   PAGE LOAD
+   ===================================== */
+
+loadRooms();
+
+
+</script>
+
+
+</body>
+
+</html>

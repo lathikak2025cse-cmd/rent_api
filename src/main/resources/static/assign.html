@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>RentEasy - Assign Room</title>
+
+   <link rel="stylesheet"
+      href="/css/style.css">
+</head>
+
+<body>
+
+
+<!-- =========================
+     SIDEBAR
+     ========================= -->
+
+<aside class="sidebar">
+
+    <div class="logo">
+        🏠 RentEasy
+    </div>
+
+    <nav>
+
+        <a href="index.html">
+            📊 Dashboard
+        </a>
+
+        <a href="rooms.html">
+            🏠 Rooms
+        </a>
+
+        <a href="tenants.html">
+            👤 Tenants
+        </a>
+
+        <a href="assign.html" class="active">
+            🔗 Assign Room
+        </a>
+
+        <a href="payments.html">
+            💰 Rent Payments
+        </a>
+
+        <a href="dues.html">
+            ⚠️ Dues
+        </a>
+
+        <a href="vacate.html">
+            🚪 Vacate Tenant
+        </a>
+
+    </nav>
+
+</aside>
+
+
+<!-- =========================
+     MAIN CONTENT
+     ========================= -->
+
+<main class="main-content">
+
+
+    <!-- HEADER -->
+
+    <header class="topbar">
+
+        <h1>Assign Room</h1>
+
+        <p>
+            Assign an available room to a tenant
+        </p>
+
+    </header>
+
+
+    <!-- =========================
+         ASSIGN FORM
+         ========================= -->
+
+    <section class="form-card">
+
+        <h2>Room Assignment</h2>
+
+        <form id="assignmentForm">
+
+
+            <!-- TENANT -->
+
+            <div class="form-group">
+
+                <label for="tenantSelect">
+                    Select Tenant
+                </label>
+
+                <select id="tenantSelect" required>
+
+                    <option value="">
+                        Loading tenants...
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <!-- ROOM -->
+
+            <div class="form-group">
+
+                <label for="roomSelect">
+                    Select Available Room
+                </label>
+
+                <select id="roomSelect" required>
+
+                    <option value="">
+                        Loading rooms...
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <button
+                type="submit"
+                class="primary-button">
+
+                Assign Room
+
+            </button>
+
+        </form>
+
+
+        <!-- MESSAGE -->
+
+        <div
+            id="assignmentMessage"
+            class="message">
+        </div>
+
+    </section>
+
+
+    <!-- =========================
+         INFORMATION
+         ========================= -->
+
+    <section class="table-card">
+
+        <h2>Assignment Information</h2>
+
+        <p class="info-text">
+            Only tenants without an assigned room
+            and rooms marked as available can be
+            selected.
+        </p>
+
+        <div class="assignment-info">
+
+            <div class="info-box">
+
+                <span class="info-number"
+                      id="availableRoomCount">
+                    0
+                </span>
+
+                <span>
+                    Available Rooms
+                </span>
+
+            </div>
+
+
+            <div class="info-box">
+
+                <span class="info-number"
+                      id="unassignedTenantCount">
+                    0
+                </span>
+
+                <span>
+                    Unassigned Tenants
+                </span>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+</main>
+
+
+<script src="js/app.js"></script>
+
+
+<script>
+
+
+/* ===================================
+   LOAD TENANTS
+   =================================== */
+
+async function loadTenantsForAssignment() {
+
+    const tenantSelect =
+        document.getElementById(
+            "tenantSelect"
+        );
+
+
+    try {
+
+        const response =
+            await fetch("/api/tenants");
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                "Failed to load tenants"
+            );
+
+        }
+
+
+        const tenants =
+            await response.json();
+
+
+        tenantSelect.innerHTML = `
+            <option value="">
+                -- Select Tenant --
+            </option>
+        `;
+
+
+        let unassignedCount = 0;
+
+
+        tenants.forEach(tenant => {
+
+
+            /* Only tenants without room */
+
+            if (tenant.room === null) {
+
+                const option =
+                    document.createElement(
+                        "option"
+                    );
+
+
+                option.value =
+                    tenant.id;
+
+
+                option.textContent =
+                    `${tenant.name}
+                     (ID: ${tenant.id})`;
+
+
+                tenantSelect.appendChild(
+                    option
+                );
+
+
+                unassignedCount++;
+
+            }
+
+        });
+
+
+        document.getElementById(
+            "unassignedTenantCount"
+        ).textContent = unassignedCount;
+
+
+        if (unassignedCount === 0) {
+
+            tenantSelect.innerHTML = `
+                <option value="">
+                    No unassigned tenants
+                </option>
+            `;
+
+        }
+
+
+    } catch (error) {
+
+        console.error(error);
+
+
+        tenantSelect.innerHTML = `
+            <option value="">
+                Failed to load tenants
+            </option>
+        `;
+
+    }
+
+}
+
+
+/* ===================================
+   LOAD AVAILABLE ROOMS
+   =================================== */
+
+async function loadAvailableRooms() {
+
+    const roomSelect =
+        document.getElementById(
+            "roomSelect"
+        );
+
+
+    try {
+
+        const response =
+            await fetch("/api/rooms");
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                "Failed to load rooms"
+            );
+
+        }
+
+
+        const rooms =
+            await response.json();
+
+
+        roomSelect.innerHTML = `
+            <option value="">
+                -- Select Available Room --
+            </option>
+        `;
+
+
+        let availableCount = 0;
+
+
+        rooms.forEach(room => {
+
+
+            /* Only available rooms */
+
+            if (!room.occupied) {
+
+                const option =
+                    document.createElement(
+                        "option"
+                    );
+
+
+                option.value =
+                    room.id;
+
+
+                option.textContent =
+                    `${room.roomNumber}
+                     - ₹${room.monthlyRent}/month`;
+
+
+                roomSelect.appendChild(
+                    option
+                );
+
+
+                availableCount++;
+
+            }
+
+        });
+
+
+        document.getElementById(
+            "availableRoomCount"
+        ).textContent = availableCount;
+
+
+        if (availableCount === 0) {
+
+            roomSelect.innerHTML = `
+                <option value="">
+                    No available rooms
+                </option>
+            `;
+
+        }
+
+
+    } catch (error) {
+
+        console.error(error);
+
+
+        roomSelect.innerHTML = `
+            <option value="">
+                Failed to load rooms
+            </option>
+        `;
+
+    }
+
+}
+
+
+/* ===================================
+   ASSIGN ROOM
+   =================================== */
+
+document
+    .getElementById("assignmentForm")
+    .addEventListener(
+        "submit",
+        async function(event) {
+
+            event.preventDefault();
+
+
+            const tenantId =
+                document
+                    .getElementById(
+                        "tenantSelect"
+                    )
+                    .value;
+
+
+            const roomId =
+                document
+                    .getElementById(
+                        "roomSelect"
+                    )
+                    .value;
+
+
+            const message =
+                document.getElementById(
+                    "assignmentMessage"
+                );
+
+
+            if (!tenantId || !roomId) {
+
+                message.className =
+                    "message error";
+
+                message.textContent =
+                    "❌ Please select both tenant and room.";
+
+                return;
+
+            }
+
+
+            try {
+
+                const response =
+                    await fetch(
+                        `/api/assignments?tenantId=${tenantId}&roomId=${roomId}`,
+                        {
+                            method: "POST"
+                        }
+                    );
+
+
+                const result =
+                    await response.text();
+
+
+                if (!response.ok) {
+
+                    throw new Error(result);
+
+                }
+
+
+                message.className =
+                    "message success";
+
+
+                message.textContent =
+                    "✅ " + result;
+
+
+                /* Reset form */
+
+                document
+                    .getElementById(
+                        "assignmentForm"
+                    )
+                    .reset();
+
+
+                /* Reload available data */
+
+                loadTenantsForAssignment();
+
+                loadAvailableRooms();
+
+
+            } catch (error) {
+
+                console.error(error);
+
+
+                message.className =
+                    "message error";
+
+
+                message.textContent =
+                    "❌ " + error.message;
+
+            }
+
+        }
+    );
+
+
+/* ===================================
+   LOAD DATA WHEN PAGE OPENS
+   =================================== */
+
+loadTenantsForAssignment();
+
+loadAvailableRooms();
+
+
+</script>
+
+
+</body>
+
+</html>

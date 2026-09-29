@@ -13,7 +13,7 @@ public class VacateController {
     public VacateController(VacateService vacateService) {
         this.vacateService = vacateService;
     }
-
+    //update 
     @PutMapping("/tenant/{tenantId}")
     public String vacateTenant(@PathVariable Long tenantId) {
 

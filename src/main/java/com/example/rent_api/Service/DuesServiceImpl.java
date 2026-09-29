@@ -25,76 +25,91 @@ public class DuesServiceImpl implements DuesService {
         this.rentPaymentRepository = rentPaymentRepository;
     }
 
+    // =====================================================
+    // CHECK DUES FOR ONE TENANT
+    // =====================================================
+
     @Override
     public String getTenantDues(Long tenantId) {
 
-        // Find tenant
         Tenant tenant = tenantRepository.findById(tenantId)
-                .orElseThrow(() -> new RuntimeException("Tenant not found"));
+                .orElseThrow(() ->
+                        new RuntimeException("Tenant not found"));
 
-        // Check whether tenant has a room
+        // Tenant must have a room
         if (tenant.getRoom() == null) {
             throw new RuntimeException(
                     "Tenant is not assigned to any room");
         }
 
-        // Get move-in date
-        LocalDate moveInDate = tenant.getMoveInDate();
+        // Move-in date is required
+        if (tenant.getMoveInDate() == null) {
+            throw new RuntimeException(
+                    "Tenant move-in date is not available");
+        }
 
-        // Current date
-        LocalDate currentDate = LocalDate.now();
+        LocalDate moveInDate =tenant.getMoveInDate();
 
-        // Calculate number of months since move-in
-        Period period = Period.between(moveInDate, currentDate);
+        LocalDate currentDate =LocalDate.now();
 
-        int monthsSinceMoveIn =
-                period.getYears() * 12 + period.getMonths() + 1;
+        Period period = Period.between(moveInDate,currentDate);
 
-        // Get number of payments made by tenant
-        List<RentPayment> payments =
-                rentPaymentRepository.findAll()
-                        .stream()
-                        .filter(payment ->
-                                payment.getTenant().getId().equals(tenantId))
-                        .toList();
+        int monthsSinceMoveIn = period.getYears() * 12 + period.getMonths()+ 1;
+
+        // Get all payments for this tenant
+        List<RentPayment> payments = rentPaymentRepository.findAll().stream()
+                        .filter(payment -> payment.getTenant() != null && payment.getTenant()
+                        .getId().equals(tenantId)).toList();
 
         int monthsPaid = payments.size();
 
-        // Calculate pending months
         int pendingMonths = monthsSinceMoveIn - monthsPaid;
 
         if (pendingMonths < 0) {
             pendingMonths = 0;
         }
 
-        // Monthly rent
-        double monthlyRent = tenant.getRoom().getMonthlyRent();
+        double monthlyRent =tenant.getRoom().getMonthlyRent();
 
-        // Calculate pending amount
-        double pendingAmount = pendingMonths * monthlyRent;
+        double pendingAmount =pendingMonths * monthlyRent;
 
-        return "Tenant: " + tenant.getName()
-                + "\nMonths since move-in: " + monthsSinceMoveIn
-                + "\nMonths paid: " + monthsPaid
-                + "\nPending months: " + pendingMonths
-                + "\nPending amount: ₹" + pendingAmount;
+        return "Tenant: "
+                + tenant.getName()
+                + "\nMonths Since Move-in: "
+                + monthsSinceMoveIn
+                + "\nMonths Paid: "
+                + monthsPaid
+                + "\nPending Months: "
+                + pendingMonths
+                + "\nPending Amount: ₹"
+                + pendingAmount;
     }
 
+
+    // =====================================================
+    // CURRENT MONTH PENDING RENT
+    // =====================================================
+
     @Override
-    public List<Tenant> getTenantsWithPendingCurrentMonthRent() {
+    public List<Tenant>
+            getTenantsWithPendingCurrentMonthRent() {
 
-        String currentMonth =
-                LocalDate.now().toString().substring(0, 7);
+        String currentMonth = LocalDate.now().toString().substring(0, 7);
 
-        return tenantRepository.findAll()
-                .stream()
-                .filter(tenant -> tenant.getRoom() != null)
-                .filter(tenant ->
-                        !rentPaymentRepository
-                                .findByTenantIdAndMonth(
-                                        tenant.getId(),
-                                        currentMonth)
-                                .isPresent())
+        return tenantRepository.findAll().stream()
+                // Only tenants who have a room
+               .filter(tenant -> tenant.getRoom() != null)
+                // Check whether tenant has paid
+                // the current month's rent
+                .filter(tenant -> {
+
+     List<RentPayment> payments =rentPaymentRepository.findAllByTenantIdAndMonth(
+                                            tenant.getId(),
+                                            currentMonth);
+
+                    return payments.isEmpty();
+                })
+
                 .toList();
     }
 }

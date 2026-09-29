@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>RentEasy - Vacate Tenant</title>
+
+    <link rel="stylesheet"
+      href="/css/style.css">
+
+</head>
+
+<body>
+
+
+<!-- =========================
+     SIDEBAR
+     ========================= -->
+
+<aside class="sidebar">
+
+    <div class="logo">
+        🏠 RentEasy
+    </div>
+
+    <nav>
+
+        <a href="index.html">
+            📊 Dashboard
+        </a>
+
+        <a href="rooms.html">
+            🏠 Rooms
+        </a>
+
+        <a href="tenants.html">
+            👤 Tenants
+        </a>
+
+        <a href="assign.html">
+            🔗 Assign Room
+        </a>
+
+        <a href="payments.html">
+            💰 Rent Payments
+        </a>
+
+        <a href="dues.html">
+            ⚠️ Dues
+        </a>
+
+        <a href="vacate.html" class="active">
+            🚪 Vacate Tenant
+        </a>
+
+    </nav>
+
+</aside>
+
+
+<!-- =========================
+     MAIN CONTENT
+     ========================= -->
+
+<main class="main-content">
+
+
+    <!-- HEADER -->
+
+    <header class="topbar">
+
+        <h1>Vacate Tenant</h1>
+
+        <p>
+            Vacate a tenant and free their room
+        </p>
+
+    </header>
+
+
+    <!-- =========================
+         VACATE FORM
+         ========================= -->
+
+    <section class="form-card">
+
+        <h2>Vacate Tenant</h2>
+
+        <form id="vacateForm">
+
+
+            <div class="form-group">
+
+                <label for="tenantSelect">
+                    Select Tenant
+                </label>
+
+                <select
+                    id="tenantSelect"
+                    required>
+
+                    <option value="">
+                        Loading tenants...
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <button
+                type="submit"
+                class="primary-button">
+
+                Vacate Tenant
+
+            </button>
+
+        </form>
+
+
+        <div
+            id="vacateMessage"
+            class="message">
+        </div>
+
+    </section>
+
+
+    <!-- =========================
+         CURRENT TENANTS
+         ========================= -->
+
+    <section class="table-card">
+
+        <div class="section-header">
+
+            <div>
+
+                <h2>Currently Assigned Tenants</h2>
+
+                <p>
+                    Tenants who currently occupy rooms
+                </p>
+
+            </div>
+
+
+            <button
+                class="secondary-button"
+                onclick="loadAssignedTenants()">
+
+                🔄 Refresh
+
+            </button>
+
+        </div>
+
+
+        <div class="table-container">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>ID</th>
+
+                        <th>Tenant</th>
+
+                        <th>Phone</th>
+
+                        <th>Room</th>
+
+                        <th>Monthly Rent</th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody id="tenantTableBody">
+
+                    <tr>
+
+                        <td colspan="5">
+                            Loading...
+                        </td>
+
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+</main>
+
+
+<script src="js/app.js"></script>
+
+
+<script>
+
+
+/* ===================================
+   LOAD ASSIGNED TENANTS
+   =================================== */
+
+async function loadAssignedTenants() {
+
+    const tenantSelect =
+        document.getElementById(
+            "tenantSelect"
+        );
+
+
+    const tableBody =
+        document.getElementById(
+            "tenantTableBody"
+        );
+
+
+    try {
+
+        const response =
+            await fetch("/api/tenants");
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                "Failed to load tenants"
+            );
+
+        }
+
+
+        const tenants =
+            await response.json();
+
+
+        /* Clear dropdown */
+
+        tenantSelect.innerHTML = `
+            <option value="">
+                -- Select Tenant --
+            </option>
+        `;
+
+
+        /* Clear table */
+
+        tableBody.innerHTML = "";
+
+
+        let assignedCount = 0;
+
+
+        tenants.forEach(tenant => {
+
+
+            /*
+             * Only show tenants
+             * who currently have a room.
+             */
+
+            if (tenant.room !== null) {
+
+
+                /* Dropdown option */
+
+                const option =
+                    document.createElement(
+                        "option"
+                    );
+
+
+                option.value =
+                    tenant.id;
+
+
+                option.textContent =
+                    `${tenant.name}
+                     - Room ${tenant.room.roomNumber}`;
+
+
+                tenantSelect.appendChild(
+                    option
+                );
+
+
+                /* Table row */
+
+                const row =
+                    document.createElement(
+                        "tr"
+                    );
+
+
+                row.innerHTML = `
+
+                    <td>
+                        ${tenant.id}
+                    </td>
+
+                    <td>
+                        ${tenant.name}
+                    </td>
+
+                    <td>
+                        ${tenant.phone}
+                    </td>
+
+                    <td>
+                        ${tenant.room.roomNumber}
+                    </td>
+
+                    <td>
+                        ₹${tenant.room.monthlyRent}
+                    </td>
+
+                `;
+
+
+                tableBody.appendChild(row);
+
+
+                assignedCount++;
+
+            }
+
+        });
+
+
+        /* No assigned tenants */
+
+        if (assignedCount === 0) {
+
+            tenantSelect.innerHTML = `
+                <option value="">
+                    No assigned tenants
+                </option>
+            `;
+
+
+            tableBody.innerHTML = `
+
+                <tr>
+
+                    <td colspan="5">
+
+                        No tenants are currently
+                        assigned to rooms.
+
+                    </td>
+
+                </tr>
+
+            `;
+
+        }
+
+
+    } catch (error) {
+
+        console.error(error);
+
+
+        tenantSelect.innerHTML = `
+            <option value="">
+                Failed to load tenants
+            </option>
+        `;
+
+
+        tableBody.innerHTML = `
+
+            <tr>
+
+                <td colspan="5">
+
+                    ❌ Failed to load tenants.
+
+                </td>
+
+            </tr>
+
+        `;
+
+    }
+
+}
+
+
+/* ===================================
+   VACATE TENANT
+   =================================== */
+
+document
+    .getElementById("vacateForm")
+    .addEventListener(
+        "submit",
+        async function(event) {
+
+            event.preventDefault();
+
+
+            const tenantId =
+                document
+                    .getElementById(
+                        "tenantSelect"
+                    )
+                    .value;
+
+
+            const message =
+                document.getElementById(
+                    "vacateMessage"
+                );
+
+
+            if (!tenantId) {
+
+                message.className =
+                    "message error";
+
+
+                message.textContent =
+                    "❌ Please select a tenant.";
+
+
+                return;
+
+            }
+
+
+            /*
+             * Ask for confirmation
+             */
+
+            const confirmed =
+                confirm(
+                    "Are you sure you want to vacate this tenant?"
+                );
+
+
+            if (!confirmed) {
+
+                return;
+
+            }
+
+
+            try {
+
+                const response =
+                    await fetch(
+                        `/api/vacate/tenant/${tenantId}`,
+                        {
+                            method: "PUT"
+                        }
+                    );
+
+
+                const result =
+                    await response.text();
+
+
+                if (!response.ok) {
+
+                    throw new Error(result);
+
+                }
+
+
+                message.className =
+                    "message success";
+
+
+                message.textContent =
+                    "✅ " + result;
+
+
+                /*
+                 * Reload tenants
+                 * after successful vacating.
+                 */
+
+                loadAssignedTenants();
+
+
+            } catch (error) {
+
+                console.error(error);
+
+
+                message.className =
+                    "message error";
+
+
+                message.textContent =
+                    "❌ " + error.message;
+
+            }
+
+        }
+    );
+
+
+/* ===================================
+   PAGE INITIALIZATION
+   =================================== */
+
+loadAssignedTenants();
+
+
+</script>
+
+
+</body>
+
+</html>
